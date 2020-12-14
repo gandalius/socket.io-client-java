@@ -89,7 +89,7 @@ public class Socket extends Emitter {
     private int ids;
     private String nsp;
     private Manager io;
-    private String query;
+    private Map<String, String> auth;
     private Map<Integer, Ack> acks = new HashMap<Integer, Ack>();
     private Queue<On.Handle> subs;
     private final Queue<List<Object>> receiveBuffer = new LinkedList<List<Object>>();
@@ -99,7 +99,7 @@ public class Socket extends Emitter {
         this.io = io;
         this.nsp = nsp;
         if (opts != null) {
-            this.query = opts.query;
+            this.auth = opts.auth;
         }
     }
 
@@ -255,14 +255,10 @@ public class Socket extends Emitter {
     private void onopen() {
         logger.fine("transport is open - connecting");
 
-        if (!"/".equals(this.nsp)) {
-            if (this.query != null && !this.query.isEmpty()) {
-                Packet packet = new Packet(Parser.CONNECT);
-                packet.query = this.query;
-                this.packet(packet);
-            } else {
-                this.packet(new Packet(Parser.CONNECT));
-            }
+        if (this.auth != null) {
+            this.packet(new Packet<>(Parser.CONNECT, new JSONObject(this.auth)));
+        } else {
+            this.packet(new Packet<>(Parser.CONNECT));
         }
     }
 
@@ -279,9 +275,17 @@ public class Socket extends Emitter {
         if (!this.nsp.equals(packet.nsp)) return;
 
         switch (packet.type) {
-            case Parser.CONNECT:
-                this.onconnect();
+            case Parser.CONNECT: {
+                if (packet.data instanceof JSONObject && ((JSONObject) packet.data).has("sid")) {
+                    try {
+                        this.onconnect(((JSONObject) packet.data).getString("sid"));
+                        return;
+                    } catch (JSONException e) {}
+                } else {
+                    this.emit(EVENT_ERROR, new SocketIOException("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, which is not possible"));
+                }
                 break;
+            }
 
             case Parser.EVENT: {
                 @SuppressWarnings("unchecked")
@@ -315,7 +319,7 @@ public class Socket extends Emitter {
                 this.ondisconnect();
                 break;
 
-            case Parser.ERROR:
+            case Parser.CONNECT_ERROR:
                 this.emit(EVENT_ERROR, packet.data);
                 break;
         }
@@ -384,8 +388,9 @@ public class Socket extends Emitter {
         }
     }
 
-    private void onconnect() {
+    private void onconnect(String id) {
         this.connected = true;
+        this.id = id;
         this.emit(EVENT_CONNECT);
         this.emitBuffered();
     }

@@ -1,6 +1,5 @@
 package io.socket.parser;
 
-import io.socket.emitter.Emitter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -15,7 +14,7 @@ import static org.junit.Assert.assertThat;
 public class Helpers {
 
     private static Parser.Encoder encoder = new IOParser.Encoder();
-    private static Packet<String> errorPacket = new Packet<String>(Parser.ERROR, "parser error");
+    private static Packet<String> errorPacket = new Packet<String>(Parser.CONNECT_ERROR, "parser error");
 
     public static void test(final Packet obj) {
         encoder.encode(obj, new Parser.Encoder.Callback() {

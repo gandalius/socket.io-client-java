@@ -167,21 +167,6 @@ public class Manager extends Emitter {
         }
     }
 
-    /**
-     * Update `socket.id` of all sockets
-     */
-    private void updateSocketIds() {
-        for (Map.Entry<String, Socket> entry : this.nsps.entrySet()) {
-            String nsp = entry.getKey();
-            Socket socket = entry.getValue();
-            socket.id = this.generateId(nsp);
-        }
-    }
-
-    private String generateId(String nsp) {
-        return ("/".equals(nsp) ? "" : (nsp + "#")) + this.engine.id();
-    }
-
     public boolean reconnection() {
         return this._reconnection;
     }
@@ -459,12 +444,6 @@ public class Manager extends Emitter {
                         self.connecting.add(s);
                     }
                 });
-                socket.on(Socket.EVENT_CONNECT, new Listener() {
-                    @Override
-                    public void call(Object... objects) {
-                        s.id = self.generateId(nsp);
-                    }
-                });
             }
         }
         return socket;
@@ -486,10 +465,6 @@ public class Manager extends Emitter {
             logger.fine(String.format("writing packet %s", packet));
         }
         final Manager self = this;
-
-        if (packet.query != null && !packet.query.isEmpty() && packet.type == Parser.CONNECT) {
-            packet.nsp += "?" + packet.query;
-        }
 
         if (!self.encoding) {
             self.encoding = true;
@@ -625,7 +600,6 @@ public class Manager extends Emitter {
         int attempts = this.backoff.getAttempts();
         this.reconnecting = false;
         this.backoff.reset();
-        this.updateSocketIds();
         this.emitAll(EVENT_RECONNECT, attempts);
     }
 
@@ -652,6 +626,7 @@ public class Manager extends Emitter {
         public double randomizationFactor;
         public Parser.Encoder encoder;
         public Parser.Decoder decoder;
+        public Map<String, String> auth;
 
         /**
          * Connection timeout (ms). Set -1 to disable.

@@ -15,7 +15,7 @@ final public class IOParser implements Parser {
     private static final Logger logger = Logger.getLogger(IOParser.class.getName());
 
     private static Packet<String> error() {
-        return new Packet<String>(ERROR, "parser error");
+        return new Packet<String>(CONNECT_ERROR, "parser error");
     }
 
     private IOParser() {}

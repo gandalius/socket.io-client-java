@@ -88,8 +88,8 @@ io.of(nsp).on('connection', function(socket) {
     socket.broadcast.emit.apply(socket, ['broadcastBack'].concat(args));
   });
 
-  socket.on('room', (...args) => {
-    io.to(socket.id).emit.apply(io.sockets, ['roomBack'].concat(args));
+  socket.on('room', (arg) => {
+    io.to(socket.id).emit("roomBack", arg);
   });
 
   socket.on('requestDisconnect', function() {
